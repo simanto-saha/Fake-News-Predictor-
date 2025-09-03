@@ -1,0 +1,150 @@
+# NEW: Function to predict on user input
+def predict_news(news_text, title=""):
+    combined_text = (title + " " + news_text).strip()
+    cleaned_text = clean_text(combined_text)
+
+    if not cleaned_text.strip():
+        return {
+            "prediction": "Unable to predict",
+            "confidence": "0.00%",
+            "raw_prediction": None,
+            "probabilities": {
+                "Real": "0.00%",
+                "Fake": "0.00%"
+            },
+            "error": "Text is empty after cleaning"
+        }
+
+    input_tfidf = vectorizer.transform([cleaned_text])
+    prediction = model.predict(input_tfidf)[0]
+
+    # Check if the model supports probability prediction
+    if hasattr(model, 'predict_proba'):
+        try:
+            probability = model.predict_proba(input_tfidf)[0]
+            confidence = max(probability) * 100
+            probabilities = {
+                "Real": f"{probability[0]*100:.2f}%",
+                "Fake": f"{probability[1]*100:.2f}%"
+            }
+        except AttributeError:
+            # Fallback for models that don't support predict_proba
+            confidence = 100.0  # Default confidence
+            probabilities = {
+                "Real": "N/A",
+                "Fake": "N/A"
+            }
+    else:
+        # For models without probability support (like SGD with hinge loss)
+        confidence = 100.0  # Default confidence
+        probabilities = {
+            "Real": "N/A",
+            "Fake": "N/A"
+        }
+
+    label = "Real" if prediction == 0 else "Fake"
+
+    return {
+        "prediction": label,
+        "confidence": f"{confidence:.2f}%",
+        "raw_prediction": prediction,
+        "probabilities": probabilities
+    }
+
+def interactive_prediction():
+    while True:
+        print("\nOptions:")
+        print("1. Enter news article for prediction")
+        print("2. Exit")
+
+        choice = input("\nEnter your choice (1, 2): ").strip()
+
+        if choice == "1":
+            title = input("\nEnter news title (optional): ").strip()
+            text = input("Enter news content: ").strip()
+
+            if not text:
+                print("Please enter some news content!")
+                continue
+
+            # Make prediction
+            result = predict_news(text, title)
+
+            print("\n" + "-"*40)
+            print("PREDICTION RESULTS:")
+            print("-"*40)
+            if "error" in result:
+                print(f"Error: {result['error']}")
+            else:
+                print(f"Prediction: {result['prediction']}")
+                print(f"Confidence: {result['confidence']}")
+                if result['probabilities']['Real'] != "N/A":
+                    print(f"Probability Breakdown:")
+                    print(f"  Real News: {result['probabilities']['Real']}")
+                    print(f"  Fake News: {result['probabilities']['Fake']}")
+                else:
+                    print("Note: This model doesn't provide probability scores.")
+            print("-"*40)
+
+        elif choice == "2":
+            print("Thank you for using the Fake News Detection System!")
+            break
+        else:
+            print("Invalid choice. Please enter 1 or 2.")
+
+def save_model():
+    try:
+        # Create a model package with all necessary components
+        model_package = {
+            'model': model,
+            'vectorizer': vectorizer,
+            'model_type': type(model).__name__
+        }
+
+        with open('/content/drive/MyDrive/fake_news_complete_model.pkl', 'wb') as f:
+            pickle.dump(model_package, f)
+
+        print("Complete model package saved successfully!")
+        print("Saved components: model, vectorizer, and model type information")
+    except Exception as e:
+        print(f"Error saving model: {e}")
+
+# Alternative: Use a model that supports probabilities
+def use_probability_model():
+    """
+    If you want to ensure probability support, use this function to
+    replace SGD with Logistic Regression for the prediction interface
+    """
+    global model
+
+    # Find the best model that supports probabilities
+    prob_models = {}
+    for name, trained_model in trained_models.items():
+        if hasattr(trained_model, 'predict_proba'):
+            prob_models[name] = results[name]['f1_score']
+
+    if prob_models:
+        best_prob_model = max(prob_models.keys(), key=lambda x: prob_models[x])
+        model = trained_models[best_prob_model]
+        print(f"Switched to {best_prob_model} for probability support")
+        print(f"F1 Score: {results[best_prob_model]['f1_score']:.4f}")
+    else:
+        print("No models with probability support found!")
+
+# Check if current model supports probabilities
+print(f"\nCurrent model: {type(model).__name__}")
+print(f"Supports probabilities: {hasattr(model, 'predict_proba')}")
+
+# Ask user if they want to switch to a probability-supporting model
+if not hasattr(model, 'predict_proba'):
+    switch_choice = input("\nCurrent model doesn't support probabilities. Switch to best probability model? (y/n): ").lower()
+    if switch_choice == 'y':
+        use_probability_model()
+
+# Save model
+save_choice = input("\nDo you want to save the trained model? (y/n): ").lower()
+if save_choice == 'y':
+    save_model()
+
+# Start interactive prediction
+interactive_prediction()
