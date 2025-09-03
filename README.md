@@ -93,7 +93,7 @@ def clean_text(text):
 ### Feature Engineering
 - Handles missing values with `fillna("")`
 - Combines title and text: `content = title + " " + text`
-- TF-IDF vectorization with 5000 max features
+- TF-IDF vectorization with 1000 max features
 - Removes English stop words
 
 ### Model Training
