@@ -225,8 +225,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Your Name - simanto.saha@g.bracu.ac.bd
 
-Project Link: [https://github.com/yourusername/fake-news-detection](https://github.com/yourusername/fake-news-detection)
-
+Project Link: [https://github.com/simanto-saha/Fake-News-Predictor-.git]
 ---
 
 ⭐ **If you found this project helpful, please consider giving it a star!** ⭐
